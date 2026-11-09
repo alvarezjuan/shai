@@ -5,6 +5,7 @@ Cargo.lock
 # IDE/Editor
 .idea/
 .vscode/
+.workspaces/
 *.swp
 *.swo
 *~
