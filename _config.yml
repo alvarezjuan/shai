@@ -1,0 +1,50 @@
+title: shai Documentation
+description: AI-powered shell agent with natural language to shell translation
+theme: jekyll-theme-minimal
+url: "https://alvarezjuan.github.io"
+baseurl: "/shai"
+
+# Navigation
+nav:
+  - title: "Home"
+    url: /
+  - title: "Quick Start"
+    url: /quick-start/
+  - title: "Configuration"
+    url: /configuration/
+  - title: "Usage"
+    url: /usage/
+  - title: "Architecture"
+    url: /architecture/
+  - title: "Tools"
+    url: /tools/
+  - title: "Development"
+    url: /development/
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# Plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-github-metadata
+
+relative_links:
+  enabled: true
+  collections: true
+
+# Exclude
+exclude:
+  - node_modules
+  - vendor
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - Cargo.toml
+  - Cargo.lock
+  - target/
+  - .git/
+  - .gitignore
