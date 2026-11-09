@@ -18,7 +18,7 @@
 - **Human-in-the-Loop**: Confirmation prompts for sensitive operations
 - **Persistent History**: JSONL conversation history per project (`.shai/session.jsonl`)
 - **Multi-Provider Support**: OpenAI, Anthropic, Ollama (local)
-- **15 Built-in Tools**: File ops, git, web search/fetch, task tracking
+- **7 Built-in Tools**: File ops, web search/fetch
 - **REPL & One-Shot Modes**: Interactive session or single command
 
 ## Installation
@@ -150,17 +150,13 @@ shai -v                 # Start REPL in verbose mode
 | 3 | **WriteRecoverable** | Confirm (y/N) | `rm file`, `git reset --hard`, `docker rm` |
 | 4 | **Catastrophic** | Deny (no prompt) | `rm -rf /`, `dd if=/dev/zero of=/dev/sda` |
 
-## Built-in Tools (15)
+## Built-in Tools (7)
 
 | Category | Tools |
 |----------|-------|
 | **Shell** | `shell` (LLM-classified risk) |
 | **File Read** | `read`, `glob`, `grep`, `list_dir` |
 | **Web** | `web_search`, `web_fetch` |
-| **Git Read** | `git_status`, `git_diff`, `git_log` |
-| **Git Write** | `git_commit`, `git_push` |
-| **File Write** | `edit`, `patch` |
-| **Tasks** | `todo_read`, `todo_write` |
 
 ## Architecture
 
@@ -169,7 +165,7 @@ User Prompt
     ↓
 Load History (.shai/session.jsonl)
     ↓
-AgentBuilder (Primary Model + 15 Tools)
+AgentBuilder (Primary Model + 7 Tools)
     ↓
 Turn Runner (max_turns=1)
     ↓
@@ -207,10 +203,7 @@ shai/
 │       ├── grep.rs       # Content search
 │       ├── list_dir.rs   # Directory listing
 │       ├── web_search.rs # Web search
-│       ├── web_fetch.rs  # URL fetching
-│       ├── git.rs        # Git operations (implemented, stubbed for git2/openssl)
-│       ├── edit.rs       # Edit/patch tools
-│       └── todo.rs       # Task tracking
+│       └── web_fetch.rs  # URL fetching
 ├── tests/
 │   └── integration.rs
 └── docs/
@@ -236,7 +229,7 @@ cargo run                # REPL
 
 ### v1.x (Current - Implemented)
 - ✅ Core agent loop with risk classification
-- ✅ 15 built-in tools (shell, file ops, web, git, tasks)
+- ✅ 7 built-in tools (shell, file ops, web)
 - ✅ OpenAI/Anthropic/Ollama providers
 - ✅ JSONL history, REPL mode
 - ✅ 4-tier risk classifier with user confirmation

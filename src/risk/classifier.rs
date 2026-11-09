@@ -4,13 +4,18 @@ use rig::completion::CompletionRequest;
 use rig::driver::DynModel;
 use rig::operation::Completion;
 
+use std::sync::Arc;
+
+#[derive(Clone)]
 pub struct RiskClassifier {
-    model: DynModel<Completion>,
+    model: Arc<DynModel<Completion>>,
 }
 
 impl RiskClassifier {
     pub fn new(model: DynModel<Completion>) -> Self {
-        Self { model }
+        Self {
+            model: Arc::new(model),
+        }
     }
 
     pub async fn evaluate(

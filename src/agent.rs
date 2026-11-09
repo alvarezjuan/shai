@@ -2,13 +2,13 @@ use crate::config::{Config, ProviderConfig, RiskProviderConfig};
 use crate::history::History;
 use crate::provider::build_model;
 use crate::risk::RiskClassifier;
-use crate::tool::ToolRegistry;
-use crate::tool::{shell::ShellTool, read::ReadTool, glob::GlobTool, grep::GrepTool, list_dir::ListDirTool, web_search::WebSearchTool, web_fetch::WebFetchTool, git::GitStatusTool, git::GitDiffTool, git::GitLogTool, git::GitCommitTool, git::GitPushTool, edit::EditTool, edit::PatchTool, todo::TodoReadTool, todo::TodoWriteTool};
+use crate::tool::shell::{set_shell_config, set_shell_risk_classifier, ShellTool};
+use crate::tool::{
+    glob::GlobTool, grep::GrepTool, list_dir::ListDirTool, read::ReadTool, web_fetch::WebFetchTool,
+    web_search::WebSearchTool,
+};
 use anyhow::Result;
 use rig::agent::AgentBuilder;
-use rig::completion::{Message, message::{ToolCall, AssistantContent}};
-use rig::driver::DynModel;
-use rig::operation::Completion;
 use std::path::PathBuf;
 
 const PREAMBLE: &str = r#"
@@ -53,6 +53,10 @@ pub async fn run_agent(prompt: &str, config: &Config) -> Result<String> {
 
     let risk_classifier = RiskClassifier::new(risk_model);
 
+    // Set global shell risk classifier and config
+    set_shell_risk_classifier(risk_classifier.clone());
+    set_shell_config(config.clone());
+
     // Build agent with primary model and all tools
     let agent = AgentBuilder::new(primary_model)
         .name("shai")
@@ -66,82 +70,35 @@ pub async fn run_agent(prompt: &str, config: &Config) -> Result<String> {
         .tool(ListDirTool)
         .tool(WebSearchTool)
         .tool(WebFetchTool)
-        .tool(GitStatusTool)
-        .tool(GitDiffTool)
-        .tool(GitLogTool)
-        .tool(GitCommitTool)
-        .tool(GitPushTool)
-        .tool(EditTool)
-        .tool(PatchTool)
-        .tool(TodoReadTool)
-        .tool(TodoWriteTool)
         .build();
 
     // Load history
     let history_path = PathBuf::from(&config.session.history_path);
     let mut history = History::load(&history_path, config.session.max_history_turns)?;
 
-    let mut user_prompt = prompt.to_string();
+    // Run agent with history (rig handles tool execution automatically)
+    let runner = agent.prompt(prompt).history(history.clone()).max_turns(10);
 
-    loop {
-        // Run exactly ONE turn
-        let runner = agent
-            .prompt(user_prompt.clone())
-            .history(history.clone())
-            .max_turns(1);
+    let response = runner.await?;
 
-        let response = runner.await?;
+    // Verify model supports tool calls
+    let has_tool_calls = response.content().iter().any(|c| {
+        matches!(c, rig::completion::message::AssistantContent::ToolCall(_))
+    });
 
-        // Debug output
-        if config.display.debug {
-            println!("[DEBUG] Response: {:?}", response);
-            // Extract tool calls from response content
-            for content in response.content() {
-                if let AssistantContent::ToolCall(tc) = content {
-                    println!("[DEBUG] Tool call: {} with args: {:?}", tc.function.name, tc.function.arguments);
-                }
-            }
-        }
-
-        // Check for tool calls in response content
-        let tool_call = response.content().iter().find_map(|c| {
-            if let AssistantContent::ToolCall(tc) = c {
-                Some(tc)
-            } else {
-                None
-            }
-        });
-
-        if let Some(tool_call) = tool_call {
-            let tool_result = ToolRegistry::dispatch(tool_call, &risk_classifier, config).await?;
-
-            // Verbose output
-            if config.display.verbose {
-                if let Some(text) = tool_result.output().as_text() {
-                    println!("[TOOL RESULT] {}", text);
-                }
-            }
-
-            // Feed result back
-            history.push(Message::tool_result(
-                tool_call.id.clone(),
-                tool_call.function.name.clone(),
-                tool_result.output().as_text().unwrap_or_default(),
-            ));
-            user_prompt = String::new();
-            continue;
-        }
-
-        // Final response
-        let final_text = response.output();
-        println!("{}", final_text);
-
-        // Save history
-        for msg in response.messages() {
-            history.push(msg.clone());
-        }
-        History::save(&history_path, &history)?;
-
-        return Ok(final_text);
+    if !has_tool_calls {
+        // Model doesn't support tool calling - return error
+        return Err(anyhow::anyhow!(
+            "Model does not support tool/function calling. This model cannot execute shell commands.
+Please use a model that supports OpenAI-style function calling (e.g., gpt-4o, claude-3.5-sonnet, llama3.1 with proper tool support).
+"));
     }
+
+    // Save history
+    for msg in response.messages() {
+        history.push(msg.clone());
+    }
+    History::save(&history_path, &history)?;
+
+    Ok(response.output())
 }

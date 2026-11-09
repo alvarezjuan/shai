@@ -52,7 +52,7 @@ User Prompt
     ↓
 Load History (.shai/session.jsonl)
     ↓
-AgentBuilder (Primary Model + 15 Tools)
+AgentBuilder (Primary Model + 7 Tools)
     ↓
 Turn Runner (max_turns=1)
     ↓
@@ -79,7 +79,7 @@ ToolResult → History → Next Turn
 | ADR-006 | Dual LLM: primary + separate risk model |
 | ADR-007 | rig 0.46 umbrella crate with `agent` feature |
 | ADR-008 | Config: TOML + env vars (Env > TOML > Defaults) |
-| ADR-009 | 15 v1 tools (read/write/inspect/web/git) |
+| ADR-009 | 7 v1 tools (read/inspect/web) |
 | ADR-010 | RAG v2 deferred |
 | ADR-011 | SSH v2 deferred |
 
@@ -108,10 +108,7 @@ shai/
 │       ├── grep.rs       # Content search
 │       ├── list_dir.rs   # Directory listing
 │       ├── web_search.rs # DuckDuckGo scraping
-│       ├── web_fetch.rs  # URL content extraction
-│       ├── git.rs        # Git operations (implemented, stubbed for git2/openssl)
-│       ├── edit.rs       # File editing with diff
-│       └── todo.rs       # In-memory task list
+│       └── web_fetch.rs  # URL content extraction
 ├── tests/
 │   └── integration.rs
 └── docs/
@@ -144,7 +141,7 @@ build_model(&ProviderConfig) -> Result<DynModel<Completion>>
 
 ```rust
 run_agent(prompt: &str, config: &Config) -> Result<String>
-// Builds AgentBuilder with all 15 tools
+// Builds AgentBuilder with all 7 tools
 // Manual loop: max_turns(1), handles tool calls, risk, confirmation
 ```
 
@@ -161,22 +158,18 @@ evaluate(command: &str, cwd: &str, recent: &[String]) -> Result<RiskResult>
 
 ```rust
 ToolRegistry::dispatch(tool_call: &ToolCall, risk_classifier: &RiskClassifier, config: &Config) -> Result<ToolResult>
-// Handles 15 tools, integrates risk for shell, confirm for write tools
+// Handles 7 tools, integrates risk for shell
 ```
 
 ---
 
-## Tools (15 v1)
+## Tools (7 v1)
 
 | Tool | Category | Risk | Confirmation |
 |------|----------|------|--------------|
 | `shell` | Execute | LLM (1-4) | L2/3: y/N, L4: deny |
 | `read`, `glob`, `grep`, `list_dir` | File Read | 1 (Auto) | None |
 | `web_search`, `web_fetch` | Web | 1 (Auto) | None |
-| `git_status`, `git_diff`, `git_log` | Git Read | 1 (Auto) | None |
-| `git_commit`, `git_push` | Git Write | 3 (Confirm) | Yes |
-| `edit`, `patch` | File Write | 3 (Confirm) | Yes |
-| `todo_read`, `todo_write` | Tasks | 1 (Auto) | None |
 
 ---
 
@@ -294,9 +287,8 @@ git push origin feat/my-feature
 2. **Risk classifier**: Uses separate LLM call; may be non-deterministic. Tests use fixed JSON.
 3. **Shell execution**: Uses `sh -c` — supports pipes, redirects, builtins.
 4. **History**: JSONL, one `Message` per line. Max 50 turns loaded.
-5. **Git tools**: Currently stubbed (need `git2` with openssl).
-6. **Dual LLM**: Risk model falls back to primary if not configured.
-7. **Provider fallbacks**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OLLAMA_API_BASE_URL`.
+5. **Dual LLM**: Risk model falls back to primary if not configured.
+6. **Provider fallbacks**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OLLAMA_API_BASE_URL`.
 
 ---
 
