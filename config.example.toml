@@ -1,0 +1,63 @@
+# shai Configuration Example
+# Copy this to ~/.config/shai/config.toml and customize
+
+[provider]
+# Provider type: "openai" | "anthropic" | "ollama"
+type = "openai"
+
+# Model name (provider-specific)
+model = "gpt-4o"
+
+# Optional: Custom base URL (e.g., for OpenAI-compatible proxies)
+# base_url = "https://api.openai.com/v1"
+
+# Optional: API key (can also use OPENAI_API_KEY env var)
+# api_key = "sk-..."
+
+# Temperature for command generation (0.0-2.0)
+temperature = 0.2
+
+# Max tokens per response
+max_tokens = 4096
+
+[risk_provider]
+# Optional: Separate model for risk classification
+# If omitted, falls back to [provider] with risk-appropriate defaults
+type = "openai"
+model = "gpt-4o-mini"
+# base_url = ""
+# api_key = ""
+
+# Deterministic classification
+temperature = 0.0
+max_tokens = 100
+
+[session]
+# History file path (relative to cwd or absolute)
+history_path = ".shai/session.jsonl"
+
+# Maximum conversation turns to keep in context
+max_history_turns = 50
+
+[display]
+# Show full tool output (stdout, stderr, exit code)
+verbose = false
+
+# Show tool calls, risk levels, raw LLM responses, timing
+debug = false
+
+# Show model reasoning (if supported: o1, deepseek-r1, etc.)
+show_reasoning = false
+
+# === v2 Features (disabled by default) ===
+
+#[rag]
+#enabled = false
+#index_path = ".shai/rag"
+#embedding_model = "nomic-embed-text"
+#chunk_size = 512
+#chunk_overlap = 50
+
+#[ssh]
+#enabled = false
+#known_hosts = []
